@@ -1,0 +1,69 @@
+:host {
+    width: 100%;
+}
+
+#columns {
+    width: calc(100% - 40px);
+    display: flex;
+    flex-direction: row;
+    margin: 0 auto;
+    margin-top: 50px;
+    gap: 25px;
+}
+
+#roomInfo {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#openFileButton,
+#openSubsButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+#openFileButton:hover,
+#openSubsButton:hover {
+    background-color: #45a049;
+}
+
+#usersList {
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+#mainContainer {
+    flex-grow: 1;
+}
+
+#videoPlayer {
+    width: 100%;
+}
+
+#chatContainer {
+    max-width: 150px;
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.nav {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+#fileInput {
+    display: none;
+}

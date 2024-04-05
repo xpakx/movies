@@ -1,0 +1,28 @@
+<div id="message"></div>
+<input type="file" id="fileInput" accept="video/*">
+
+<div id="roomInfo">
+    <h2>Room {{name}}</h2>
+    <p>{{code}}</p>
+    <button id="openFileButton">O</button>
+    <button id="openSubsButton">S</button>
+</div>
+
+<div id="columns">
+    <div id="mainContainer"> <!-- TODO: extract -->
+        <video id="videoPlayer" controls></video>
+        <div id="title">Title</div>
+    </div>
+
+    <div id="chatContainer"> <!-- TODO: extract -->
+        <div id="usersList">
+            <h3>Users in the room:</h3>
+            <ul>
+                <li>User 1</li>
+            </ul>
+        </div>
+        <div id="chat">
+            <h3>Chat</h3>
+        </div>
+    </div>
+</div>
