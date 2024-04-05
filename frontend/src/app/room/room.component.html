@@ -1,16 +1,16 @@
 <div id="message"></div>
-<input type="file" id="fileInput" accept="video/*">
+<input type="file" id="fileInput" accept="video/*" #fileInput (change)="loadMovie($event)">
 
 <div id="roomInfo">
     <h2>Room {{name}}</h2>
     <p>{{code}}</p>
-    <button id="openFileButton">O</button>
+    <button id="openFileButton" (click)="openMovieChoice()">O</button>
     <button id="openSubsButton">S</button>
 </div>
 
 <div id="columns">
     <div id="mainContainer"> <!-- TODO: extract -->
-        <video id="videoPlayer" controls></video>
+        <video id="videoPlayer" controls #videoNode></video>
         <div id="title">Title</div>
     </div>
 
