@@ -1,4 +1,6 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ApiService } from '../api.service';
+import { Room } from '../dto/room';
 
 @Component({
   selector: 'app-room',
@@ -15,9 +17,18 @@ export class RoomComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('videoNode') videoNode!: ElementRef;
 
-  constructor() { }
+  constructor(private service: ApiService) { }
 
   ngOnInit(): void {
+    this.service.getRoom().subscribe({
+      next: (response: Room) => this.onRoom(response),
+    });
+  }
+
+  onRoom(room: Room) {
+    this.name = room.name;
+    this.title = room.title;
+    this.code = room.code;
   }
 
   openMovieChoice(): void {
