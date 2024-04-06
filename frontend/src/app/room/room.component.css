@@ -67,3 +67,7 @@
 #fileInput {
     display: none;
 }
+
+#testVideo {
+    width: 150px;
+}
