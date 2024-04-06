@@ -8,6 +8,7 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 export class RoomComponent implements OnInit {
   name: String = "Room";
   code: String = "code"
+  title: String = "Movie"
   owner: boolean = true;
   conn!: RTCPeerConnection;
 

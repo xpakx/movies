@@ -3,15 +3,26 @@
 
 <div id="roomInfo">
     <h2>Room {{name}}</h2>
-    <p>{{code}}</p>
-    <button id="openFileButton" (click)="openMovieChoice()">O</button>
-    <button id="openSubsButton">S</button>
+
+    <div class="buttons">
+        <button id="openFileButton" (click)="openMovieChoice()">O</button>
+        <button id="openSubsButton">S</button>
+    </div>
+
+    <div class="code-container">
+        <span class="code-copy">
+            {{ code }}
+        </span>
+        <button class="code-button">
+            Copy
+        </button>
+    </div>
 </div>
 
 <div id="columns">
     <div id="mainContainer"> <!-- TODO: extract -->
         <video id="videoPlayer" controls #videoNode></video>
-        <div id="title">Title</div>
+        <h2 class="title">{{ title }}</h2>
         <button class="test" (click)="startStream()">stream</button>
         <button class="test" (click)="getStream()">get</button>
     </div>
