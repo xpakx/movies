@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ApiService } from '../api.service';
 import { Room } from '../dto/room';
 import { WebSocketSubject, webSocket } from "rxjs/webSocket";
+import { Message } from '../dto/message';
 
 
 @Component({
@@ -13,6 +14,7 @@ export class RoomComponent implements OnInit {
   name: String = "Room";
   code: String = "code"
   title: String = "Movie"
+  user: String = "User"
   owner: boolean = true;
   conn!: RTCPeerConnection;
   subject!: WebSocketSubject<any>;
@@ -25,6 +27,7 @@ export class RoomComponent implements OnInit {
   constructor(private service: ApiService) { }
 
   ngOnInit(): void {
+    this.user = this.user + Date.now().toString();
     this.service.getRoom().subscribe({
       next: (response: Room) => this.onRoom(response),
     });
@@ -83,32 +86,29 @@ export class RoomComponent implements OnInit {
     this.checkVideo(stream);
 
     this.conn = new RTCPeerConnection(this.config);
+    stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
     this.conn.onicecandidate = (e) => this.onIceCandidate(e);
+    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
     this.conn.onnegotiationneeded = () => {
       this.conn.createOffer()
         .then((a) => this.onCreateOfferSuccess(a))
         .catch((e) => this.onError(e));
     }
-    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
-    stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
   }
 
   // not owner
   getStream() {
     this.conn = new RTCPeerConnection(this.config);
     this.conn.onicecandidate = (e) => this.onIceCandidate(e);
-    this.conn.onnegotiationneeded = () => {
-      this.conn.createOffer()
-        .then((a) => this.onCreateOfferSuccess(a))
-        .catch((e) => this.onError(e));
-    }
     this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
     this.conn.ontrack = (e) => {
       const stream = e.streams[0];
+      console.log('Remote stream', stream);
       this.checkVideo(stream);
       let video = this.videoNode.nativeElement;
       if (!video.srcObject || video.srcObject.id !== stream.id) {
-        console.log("added stream");
+        console.log("Added stream");
+        console.log(this.conn.iceConnectionState);
         video.srcObject = stream;
       }
     };
@@ -131,17 +131,17 @@ export class RoomComponent implements OnInit {
 
   onIceCandidate(event: any) {
     if (event.candidate) {
-      this.sendMessage({ 'candidate': event.candidate });
+      this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code });
     }
   }
 
   onIceStateChange(e: any) {
-
+    this.debugState();
   }
 
   onCreateOfferSuccess(desc: any) {
     this.conn.setLocalDescription(desc)
-      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription }))
+      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code }))
       .catch((e) => this.onError(e))
   }
 
@@ -149,16 +149,21 @@ export class RoomComponent implements OnInit {
 
   }
 
-  sendMessage(msg: any) {
+  sendMessage(msg: Message) {
     this.subject.next(msg);
   }
 
-  onMessage(msg: any) {
+  onMessage(msg: Message) {
+    if (msg.user == this.user) {
+      return;
+    }
     console.log(msg);
     if (msg.sdp) {
       this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
+        console.log("offer");
         if (this.conn.remoteDescription && this.conn.remoteDescription.type === 'offer') {
+          console.log("answering");
           this.conn.createAnswer()
           .then((a) => this.onCreateOfferSuccess(a))
           .catch((e) => this.onError(e));
@@ -170,5 +175,9 @@ export class RoomComponent implements OnInit {
         .then(() => {})
         .catch((e) => this.onError(e))
     }
+  }
+
+  debugState() {
+    console.log(this.conn.iceConnectionState);
   }
 }
