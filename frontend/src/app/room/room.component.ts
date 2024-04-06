@@ -9,10 +9,10 @@ export class RoomComponent implements OnInit {
   name: String = "Room";
   code: String = "code"
   owner: boolean = true;
+  conn!: RTCPeerConnection;
 
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('videoNode') videoNode!: ElementRef;
-  @ViewChild('testNode') testNode!: ElementRef;
 
   constructor() { }
 
@@ -39,6 +39,7 @@ export class RoomComponent implements OnInit {
     this.videoNode.nativeElement.src = URL.createObjectURL(file);
   }
 
+  // owner
   startStream(): void {
     let video = this.videoNode.nativeElement;
     if (video.captureStream) {
@@ -51,9 +52,35 @@ export class RoomComponent implements OnInit {
   tryStream(stream: MediaStream) {
     console.log('Starting stream');
     this.checkVideo(stream);
-    this.testNode.nativeElement.srcObject = stream;
-    this.testNode.nativeElement.muted = true;
-    this.testNode.nativeElement.play();
+
+    this.conn = new RTCPeerConnection(undefined);
+    this.conn.onicecandidate = (e) => this.onIceCandidate(e);
+    this.conn.onnegotiationneeded = () => {
+      this.conn.createOffer()
+        .then((a) => this.onCreateOfferSuccess(a))
+        .catch((e) => this.onError(e));
+    }
+    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
+    stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
+  }
+
+  // not owner
+  getStream() {
+    this.conn = new RTCPeerConnection(undefined);
+    this.conn.onicecandidate = (e) => this.onIceCandidate(e);
+    this.conn.onnegotiationneeded = () => {
+      this.conn.createOffer()
+        .then((a) => this.onCreateOfferSuccess(a))
+        .catch((e) => this.onError(e));
+    }
+    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
+    this.conn.ontrack = (e) => {
+      const stream = e.streams[0];
+      let video = this.videoNode.nativeElement;
+      if (!video.srcObject || video.srcObject.id !== stream.id) {
+        video.srcObject = stream;
+      }
+    };
   }
 
   checkVideo(stream: MediaStream) {
@@ -68,6 +95,49 @@ export class RoomComponent implements OnInit {
     if (tracks.length > 0) {
       console.log(`Using track: ${tracks[0].label}`);
       console.log(tracks[0]);
+    }
+  }
+
+  onIceCandidate(event: any) {
+    if (event.candidate) {
+      this.sendMessage({ 'candidate': event.candidate });
+    }
+  }
+
+  onIceStateChange(e: any) {
+
+  }
+
+  onCreateOfferSuccess(desc: any) {
+    this.conn.setLocalDescription(desc)
+      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription }))
+      .catch((e) => this.onError(e))
+  }
+
+  onError(e: any) {
+
+  }
+
+  sendMessage(e: any) {
+    // TODO: Send to signalling server
+  }
+
+  // TODO: message from signalling server
+  onMessage(msg: any) {
+    if (msg.sdp) {
+      this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+      .then(() => {
+        if (this.conn.remoteDescription && this.conn.remoteDescription.type === 'offer') {
+          this.conn.createAnswer()
+          .then((a) => this.onCreateOfferSuccess(a))
+          .catch((e) => this.onError(e));
+        }
+      }).catch((e) => this.onError(e));
+    } else if (msg.candidate) {
+      this.conn.addIceCandidate(
+        new RTCIceCandidate(msg.candidate))
+        .then(() => {})
+        .catch((e) => this.onError(e))
     }
   }
 }
