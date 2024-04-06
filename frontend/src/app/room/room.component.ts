@@ -1,6 +1,8 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ApiService } from '../api.service';
 import { Room } from '../dto/room';
+import { WebSocketSubject, webSocket } from "rxjs/webSocket";
+
 
 @Component({
   selector: 'app-room',
@@ -13,6 +15,9 @@ export class RoomComponent implements OnInit {
   title: String = "Movie"
   owner: boolean = true;
   conn!: RTCPeerConnection;
+  subject!: WebSocketSubject<any>;
+
+  config?: RTCConfiguration = undefined;
 
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('videoNode') videoNode!: ElementRef;
@@ -25,10 +30,22 @@ export class RoomComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.subject.complete();
+  }
+
   onRoom(room: Room) {
     this.name = room.name;
     this.title = room.title;
     this.code = room.code;
+
+    this.subject = webSocket('ws://localhost:8080/ws');
+
+    this.subject.subscribe({
+      next: (msg: any) => this.onMessage(msg),
+      error: (err: any) => console.log(err),
+      complete: () => console.log('complete')
+    });
   }
 
   openMovieChoice(): void {
@@ -65,7 +82,7 @@ export class RoomComponent implements OnInit {
     console.log('Starting stream');
     this.checkVideo(stream);
 
-    this.conn = new RTCPeerConnection(undefined);
+    this.conn = new RTCPeerConnection(this.config);
     this.conn.onicecandidate = (e) => this.onIceCandidate(e);
     this.conn.onnegotiationneeded = () => {
       this.conn.createOffer()
@@ -78,7 +95,7 @@ export class RoomComponent implements OnInit {
 
   // not owner
   getStream() {
-    this.conn = new RTCPeerConnection(undefined);
+    this.conn = new RTCPeerConnection(this.config);
     this.conn.onicecandidate = (e) => this.onIceCandidate(e);
     this.conn.onnegotiationneeded = () => {
       this.conn.createOffer()
@@ -88,8 +105,10 @@ export class RoomComponent implements OnInit {
     this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
     this.conn.ontrack = (e) => {
       const stream = e.streams[0];
+      this.checkVideo(stream);
       let video = this.videoNode.nativeElement;
       if (!video.srcObject || video.srcObject.id !== stream.id) {
+        console.log("added stream");
         video.srcObject = stream;
       }
     };
@@ -130,12 +149,12 @@ export class RoomComponent implements OnInit {
 
   }
 
-  sendMessage(e: any) {
-    // TODO: Send to signalling server
+  sendMessage(msg: any) {
+    this.subject.next(msg);
   }
 
-  // TODO: message from signalling server
   onMessage(msg: any) {
+    console.log(msg);
     if (msg.sdp) {
       this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
