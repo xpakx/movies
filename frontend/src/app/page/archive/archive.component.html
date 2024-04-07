@@ -1,0 +1,24 @@
+<div class="movie-container">
+    <ng-container *ngFor="let movie of movies">
+
+    <div class="actor-chain" *ngIf="movie.chain && movie.chain.type == 'actor'">
+        <img src="{{movie.chain.img1}}" alt="Actor 1">
+        <span>{{movie.chain.name}}</span>
+        <img src="{{movie.chain.img2}}" alt="Actor 2">
+    </div>
+
+    <div class="joker" *ngIf="movie.chain && movie.chain.type == 'joker'">
+        <img src="{{movie.chain.img1}}}}" alt="Joker">
+    </div>
+
+    <div class="movie-details">
+        <div class="movie-info">
+            <h2>{{movie.title}}</h2>
+            <i>{{movie.director}}</i>
+            <p>Release Year: {{movie.year}}</p>
+        </div>
+        <img src="{{movie.img}}" alt="Movie Poster">
+    </div>
+</ng-container>
+</div>
+
