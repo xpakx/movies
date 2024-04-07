@@ -43,6 +43,7 @@ export class RoomComponent implements OnInit {
     this.code = room.code;
 
     this.subject = webSocket('ws://localhost:8080/ws');
+    this.createRTCConnection();
 
     this.subject.subscribe({
       next: (msg: any) => this.onMessage(msg),
@@ -84,11 +85,7 @@ export class RoomComponent implements OnInit {
   tryStream(stream: MediaStream) {
     console.log('Starting stream');
     this.checkVideo(stream);
-
-    this.conn = new RTCPeerConnection(this.config);
     stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
-    this.conn.onicecandidate = (e) => this.onIceCandidate(e);
-    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
     this.conn.onnegotiationneeded = () => {
       this.conn.createOffer()
         .then((a) => this.onCreateOfferSuccess(a))
@@ -96,11 +93,14 @@ export class RoomComponent implements OnInit {
     }
   }
 
-  // not owner
-  getStream() {
+  createRTCConnection() {
     this.conn = new RTCPeerConnection(this.config);
     this.conn.onicecandidate = (e) => this.onIceCandidate(e);
     this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
+  }
+
+  // not owner
+  getStream() {
     this.conn.ontrack = (e) => {
       const stream = e.streams[0];
       console.log('Remote stream', stream);
