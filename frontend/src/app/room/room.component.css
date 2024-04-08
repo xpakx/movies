@@ -125,3 +125,20 @@
     font-weight: 700;
     color: #6e738d;
 }
+
+@media only screen and (max-width: 600px) {
+  #columns {
+    flex-direction: column;
+  }
+
+  #mainContainer {
+    width: 100%;
+  }
+
+  #chatContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 20px;
+  }
+}
