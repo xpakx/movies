@@ -12,6 +12,7 @@ robyn = "^0.54.0"
 sqlalchemy = "^2.0.29"
 psycopg2-binary = "^2.9.9"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+bcrypt = "^4.1.2"
 
 
 [build-system]
