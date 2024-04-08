@@ -1,8 +1,8 @@
-from robyn import Robyn, ALLOW_CORS, WebSocket
+from robyn import Robyn, ALLOW_CORS, WebSocket, logger
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
 from db import create_user, get_user
-from sqlalchemy.orm import Session
+from models import Base, engine, Session
 from datetime import datetime, timedelta
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
@@ -12,6 +12,7 @@ ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
 app.add_response_header("content-type", "application/json")
 websocket = WebSocket(app, "/ws")
 SECRET = "secret"
+Base.metadata.create_all(bind=engine)
 
 
 @app.exception
@@ -50,6 +51,7 @@ async def newRoom(request: Request) -> bytes:
 
 @app.post("/register")
 async def register(request: Request) -> bytes:
+    logger.info("Register")
     req: Register = json.decode(request.body, type=Register)
     if req.password != req.passwordRe:
         raise ValidationError("Passwords must match!")
@@ -75,6 +77,7 @@ def create_token(data: dict) -> str:
 
 @app.post("/authenticate")
 async def login(request: Request) -> bytes:
+    logger.info("Login")
     req: Login = json.decode(request.body, type=Login)
     with Session() as db:
         result = get_user(db, req.username)
