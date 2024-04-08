@@ -2,8 +2,8 @@
 <div class="error" *ngIf="error">{{errorMsg}}</div>
 
 <form [formGroup]="loginForm" (ngSubmit)="login()">
-  <input type = "text" name = "username" placeholder = "Username" formControlName = "username">
-  <input type = "password" name = "password" placeholder = "Password" formControlName = "password">
+  <input type = "text" name = "username" placeholder = "Username" formControlName = "username" autocomplete="username">
+  <input type = "password" name = "password" placeholder = "Password" formControlName = "password" autocomplete="current-password">
 
   <input type = "submit" value = "Log in">
 </form> 
