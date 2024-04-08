@@ -1,9 +1,11 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
+from .db import create_user
+from sqlalchemy import Session
 
 app = Robyn(__file__)
-ALLOW_CORS(app, origins=["http://localhost:4200"])
+ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
 app.add_response_header("content-type", "application/json")
 websocket = WebSocket(app, "/ws")
 
@@ -18,6 +20,12 @@ class Room(Struct):
     title: str | None = None
 
 
+class Register(Struct):
+    username: str
+    password: str
+    passwordRe: str
+
+
 @app.get("/")
 async def testRoom(request) -> bytes:
     code = "bxeQrT"
@@ -29,6 +37,19 @@ async def newRoom(request: Request) -> bytes:
     room: Room = json.decode(request.body, type=Room)
     code = "bxeQrT"
     return json.encode({"name": room.name, "title": room.title, "code": code})
+
+
+@app.post("/register")
+async def register(request: Request) -> bytes:
+    req: Register = json.decode(request.body, type=Register)
+    # TODO: check passwords
+    # TODO: encode password
+    with Session() as db:
+        result = create_user(db, {"username": req.username, "password": req.password})
+    if result is None:
+        raise Exception("User not added")
+    # TODO: generate token
+    return json.encode({"username": req.username, "token": ""})
 
 
 @websocket.on("message")
@@ -48,4 +69,4 @@ def connect():
 
 
 if __name__ == "__main__":
-    app.start(port=8080)
+    app.start(port=8080, host="0.0.0.0")
