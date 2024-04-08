@@ -1,1 +1,11 @@
-<p>register works!</p>
+<h2>Register</h2>
+<div class="error" *ngIf="error">{{errorMsg}}</div>
+
+<form [formGroup]="registerForm" (ngSubmit)="register()">
+  <input type = "text" name = "username" placeholder = "Username" formControlName = "username">
+  <input type = "password" name = "password" placeholder = "Password" formControlName = "password">
+  <input type = "password" name = "passwordRe" placeholder = "Repeat password" formControlName = "passwordRe">
+
+  <input type = "submit" value = "Register">
+</form> 
+<div class="footer">Already registered? Please <a routerLink="/login">log in</a>.</div>
