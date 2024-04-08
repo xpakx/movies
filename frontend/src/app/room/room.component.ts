@@ -42,7 +42,7 @@ export class RoomComponent implements OnInit {
     this.title = room.title;
     this.code = room.code;
 
-    this.subject = webSocket('ws://localhost:8080/ws');
+    this.subject = webSocket('ws://192.168.50.212:8080/ws');
     this.createRTCConnection();
 
     this.subject.subscribe({
