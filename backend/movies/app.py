@@ -5,6 +5,7 @@ from .db import create_user
 from sqlalchemy import Session
 from datetime import datetime, timedelta
 from jose import jwt
+from bcrypt import hashpw, checkpw, gensalt
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -45,12 +46,13 @@ async def newRoom(request: Request) -> bytes:
 @app.post("/register")
 async def register(request: Request) -> bytes:
     req: Register = json.decode(request.body, type=Register)
-    # TODO: check passwords
-    # TODO: encode password
+    if req.password != req.passwordRe:
+        raise ValidationError("Passwords must match!")
+    password = hashpw(req.password.encode('utf-8'), gensalt()).decode()
     with Session() as db:
         result = create_user(
                 db,
-                {"username": req.username, "password": req.password}
+                {"username": req.username, "password": password}
             )
     if result is None:
         raise Exception("User not added")
