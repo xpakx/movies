@@ -3,7 +3,7 @@ from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
 from db import create_user, get_user
 from models import Base, engine, Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
 
@@ -74,7 +74,7 @@ async def register_options() -> bytes:
 
 def create_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.now(UTC) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET, algorithm="HS256")
     return encoded_jwt
