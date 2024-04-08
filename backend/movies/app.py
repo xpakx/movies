@@ -3,11 +3,14 @@ from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
 from .db import create_user
 from sqlalchemy import Session
+from datetime import datetime, timedelta
+from jose import jwt
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
 app.add_response_header("content-type", "application/json")
 websocket = WebSocket(app, "/ws")
+SECRET = "secret"
 
 
 @app.exception
@@ -45,11 +48,22 @@ async def register(request: Request) -> bytes:
     # TODO: check passwords
     # TODO: encode password
     with Session() as db:
-        result = create_user(db, {"username": req.username, "password": req.password})
+        result = create_user(
+                db,
+                {"username": req.username, "password": req.password}
+            )
     if result is None:
         raise Exception("User not added")
-    # TODO: generate token
-    return json.encode({"username": req.username, "token": ""})
+    token = create_token({"sub": result.username, "id": result.id})
+    return json.encode({"username": req.username, "token": token})
+
+
+def create_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET, algorithm="HS256")
+    return encoded_jwt
 
 
 @websocket.on("message")
