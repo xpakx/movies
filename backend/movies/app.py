@@ -1,8 +1,8 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
-from .db import create_user, get_user
-from sqlalchemy import Session
+from db import create_user, get_user
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
