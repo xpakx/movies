@@ -3,6 +3,7 @@ import { ApiService } from '../api.service';
 import { Room } from '../dto/room';
 import { WebSocketSubject, webSocket } from "rxjs/webSocket";
 import { Message } from '../dto/message';
+import { environment } from 'src/environments/environment';
 
 
 @Component({
@@ -41,8 +42,8 @@ export class RoomComponent implements OnInit {
     this.name = room.name;
     this.title = room.title;
     this.code = room.code;
-
-    this.subject = webSocket('ws://192.168.50.212:8080/ws');
+    let apiUrl = environment.apiUrl.replace(/^http/, 'ws');
+    this.subject = webSocket(`${apiUrl}/ws`);
     this.createRTCConnection();
 
     this.subject.subscribe({
