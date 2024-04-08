@@ -67,6 +67,11 @@ async def register(request: Request) -> bytes:
     return json.encode({"username": req.username, "token": token})
 
 
+@app.options("/register")
+async def register_options() -> bytes:
+    return json.encode({"status": "ok"})
+
+
 def create_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=15)
@@ -88,6 +93,11 @@ async def login(request: Request) -> bytes:
         token = create_token({"sub": result.username, "id": result.id})
         return json.encode({"username": req.username, "token": token})
     raise Exception("Wrong password!")
+
+
+@app.options("/authenticate")
+async def login_options() -> bytes:
+    return json.encode({"status": "ok"})
 
 
 @websocket.on("message")
