@@ -1,7 +1,7 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
-from .db import create_user
+from .db import create_user, get_user
 from sqlalchemy import Session
 from datetime import datetime, timedelta
 from jose import jwt
@@ -28,6 +28,11 @@ class Register(Struct):
     username: str
     password: str
     passwordRe: str
+
+
+class Login(Struct):
+    username: str
+    password: str
 
 
 @app.get("/")
@@ -66,6 +71,20 @@ def create_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET, algorithm="HS256")
     return encoded_jwt
+
+
+@app.post("/authenticate")
+async def login(request: Request) -> bytes:
+    req: Login = json.decode(request.body, type=Login)
+    with Session() as db:
+        result = get_user(db, req.username)
+    if result is None:
+        raise Exception("No such user!")
+    if checkpw(req.password.encode('utf-8'),
+               result.password.encode('utf-8')):
+        token = create_token({"sub": result.username, "id": result.id})
+        return json.encode({"username": req.username, "token": token})
+    raise Exception("Wrong password!")
 
 
 @websocket.on("message")
