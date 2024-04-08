@@ -6,12 +6,18 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { RoomComponent } from './room/room.component';
 import { ArchiveComponent } from './page/archive/archive.component';
+import { RegisterComponent } from './auth/register/register.component';
+import { LoginComponent } from './auth/login/login.component';
+import { MainComponent } from './page/main/main.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     RoomComponent,
-    ArchiveComponent
+    ArchiveComponent,
+    RegisterComponent,
+    LoginComponent,
+    MainComponent
   ],
   imports: [
     BrowserModule,
