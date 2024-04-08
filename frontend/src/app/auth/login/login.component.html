@@ -1,1 +1,10 @@
-<p>login works!</p>
+<h2>Log in</h2>
+<div class="error" *ngIf="error">{{errorMsg}}</div>
+
+<form [formGroup]="loginForm" (ngSubmit)="login()">
+  <input type = "text" name = "username" placeholder = "Username" formControlName = "username">
+  <input type = "password" name = "password" placeholder = "Password" formControlName = "password">
+
+  <input type = "submit" value = "Log in">
+</form> 
+<div class="footer">Don't have an account? Please <a routerLink="/register">register</a>.</div>
