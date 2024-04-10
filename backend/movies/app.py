@@ -1,4 +1,4 @@
-from robyn import Robyn, ALLOW_CORS, WebSocket, logger, WebSocketConnector
+from robyn import Robyn, ALLOW_CORS, WebSocket, WebSocketConnector, logger
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
 from db import create_user, get_user
@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, UTC
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
 from sqids import Sqids
+from typing import Dict, List, Optional
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -20,6 +21,14 @@ sqids = Sqids(min_length=6)
 @app.exception
 def handle_exception(error: ValidationError):
     return {"status_code": 400, "body": f"error msg: {error}", "headers": {}}
+
+
+class ActiveRoom:
+    id: int
+    name: str
+    title: str
+    owner: str
+    clients: List[str]
 
 
 class Room(Struct):
@@ -36,6 +45,10 @@ class Register(Struct):
 class Login(Struct):
     username: str
     password: str
+
+
+clients: Dict[str, str] = {}  # websocket_id -> joined room code
+rooms: Dict[str, ActiveRoom] = {}  # code -> room
 
 
 @app.get("/")
@@ -114,6 +127,11 @@ def message(ws: WebSocketConnector, msg: str) -> str:
 @websocket.on("close")
 def close(ws: WebSocketConnector):
     logger.info("User " + ws.id + " disconnected")
+    code: Optional[str] = clients.pop(ws.id, None)
+    if code:
+        room = rooms[code]
+        if room:
+            room.clients.remove(ws.id)
     return '{"msg": "End of ws."}'
 
 
@@ -121,6 +139,27 @@ def close(ws: WebSocketConnector):
 def connect(ws: WebSocketConnector):
     logger.info("User " + ws.id + " connected")
     return '{"msg": "Connected to ws!"}'
+
+
+def join(ws_id: str, room_code: str):
+    if ws_id in clients:
+        code = clients[ws_id]
+        room = rooms[code]
+        if room:
+            room.clients.remove(ws_id)
+    if room_code in rooms:
+        rooms[room_code].clients.append(ws_id)
+        clients[ws_id] = room_code
+    else:
+        clients.pop(ws_id, None)
+
+
+def broadcast_room(ws: WebSocketConnector, code: str, msg: str):
+    room = rooms[code]
+    if room:
+        for client in room.clients:
+            if client != ws.id:
+                ws.sync_send_to(client, msg)
 
 
 if __name__ == "__main__":
