@@ -1,4 +1,4 @@
-from robyn import Robyn, ALLOW_CORS, WebSocket, logger
+from robyn import Robyn, ALLOW_CORS, WebSocket, logger, WebSocketConnector
 from robyn.robyn import Request
 from msgspec import json, Struct, ValidationError
 from db import create_user, get_user
@@ -6,6 +6,7 @@ from models import Base, engine, Session
 from datetime import datetime, timedelta, UTC
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
+from sqids import Sqids
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -13,6 +14,7 @@ app.add_response_header("content-type", "application/json")
 websocket = WebSocket(app, "/ws")
 SECRET = "secret"
 Base.metadata.create_all(bind=engine)
+sqids = Sqids(min_length=6)
 
 
 @app.exception
@@ -38,14 +40,16 @@ class Login(Struct):
 
 @app.get("/")
 async def testRoom(request) -> bytes:
-    code = "bxeQrT"
+    room_id = 1
+    code = sqids.encode([room_id])
     return json.encode({"name": "Test", "title": "Movie", "code": code})
 
 
 @app.post("/room")
 async def newRoom(request: Request) -> bytes:
     room: Room = json.decode(request.body, type=Room)
-    code = "bxeQrT"
+    id = 1  # TODO
+    code = sqids.encode([id])
     return json.encode({"name": room.name, "title": room.title, "code": code})
 
 
@@ -101,18 +105,21 @@ async def login_options() -> bytes:
 
 
 @websocket.on("message")
-def message(ws, msg: str) -> str:
+def message(ws: WebSocketConnector, msg: str) -> str:
+    logger.info("Msg from " + ws.id)
     ws.sync_broadcast(msg)
     '{"msg": "End of ws."}'
 
 
 @websocket.on("close")
-def close():
+def close(ws: WebSocketConnector):
+    logger.info("User " + ws.id + " disconnected")
     return '{"msg": "End of ws."}'
 
 
 @websocket.on("connect")
-def connect():
+def connect(ws: WebSocketConnector):
+    logger.info("User " + ws.id + " connected")
     return '{"msg": "Connected to ws!"}'
 
 
