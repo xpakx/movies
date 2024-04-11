@@ -3,4 +3,5 @@ export interface Message {
     room: String,
     sdp?: any,
     candidate?: any,
+    command: String;
 }

@@ -4,6 +4,7 @@ import { Room } from '../dto/room';
 import { WebSocketSubject, webSocket } from "rxjs/webSocket";
 import { Message } from '../dto/message';
 import { environment } from 'src/environments/environment';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -15,8 +16,8 @@ export class RoomComponent implements OnInit {
   name: String = "Room";
   code: String = "code"
   title: String = "Movie"
-  user: String = "User"
-  owner: boolean = true;
+  user: String = ""
+  owner: boolean = false;
   conn!: RTCPeerConnection;
   subject!: WebSocketSubject<any>;
 
@@ -25,10 +26,16 @@ export class RoomComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('videoNode') videoNode!: ElementRef;
 
-  constructor(private service: ApiService) { }
+  constructor(private service: ApiService, private router: Router) { }
 
   ngOnInit(): void {
-    this.user = this.user + Date.now().toString();
+    let username = localStorage.getItem("username");
+    if (!username) {
+      this.router.navigate(["/login"]);
+      return;
+    }
+    this.user = username;
+
     this.service.getRoom().subscribe({
       next: (response: Room) => this.onRoom(response),
     });
@@ -42,15 +49,20 @@ export class RoomComponent implements OnInit {
     this.name = room.name;
     this.title = room.title;
     this.code = room.code;
+    this.owner = this.name == "Test"; // TODO
     let apiUrl = environment.apiUrl.replace(/^http/, 'ws');
     this.subject = webSocket(`${apiUrl}/ws`);
-    this.createRTCConnection();
 
     this.subject.subscribe({
       next: (msg: any) => this.onMessage(msg),
       error: (err: any) => console.log(err),
       complete: () => console.log('complete')
     });
+    this.sendMessage({command: "join-room", user: this.user, room: this.code});
+    if (!this.owner) {
+      this.getStream(); // TODO
+    }
+
   }
 
   openMovieChoice(): void {
@@ -86,6 +98,7 @@ export class RoomComponent implements OnInit {
   tryStream(stream: MediaStream) {
     console.log('Starting stream');
     this.checkVideo(stream);
+    this.createRTCConnection();
     stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
     this.conn.onnegotiationneeded = () => {
       this.conn.createOffer()
@@ -102,6 +115,7 @@ export class RoomComponent implements OnInit {
 
   // not owner
   getStream() {
+    this.createRTCConnection();
     this.conn.ontrack = (e) => {
       const stream = e.streams[0];
       console.log('Remote stream', stream);
@@ -111,6 +125,7 @@ export class RoomComponent implements OnInit {
         console.log("Added stream");
         console.log(this.conn.iceConnectionState);
         video.srcObject = stream;
+        video.play();
       }
     };
   }
@@ -132,7 +147,7 @@ export class RoomComponent implements OnInit {
 
   onIceCandidate(event: any) {
     if (event.candidate) {
-      this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code });
+      this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code, 'command': 'candidate' });
     }
   }
 
@@ -142,7 +157,7 @@ export class RoomComponent implements OnInit {
 
   onCreateOfferSuccess(desc: any) {
     this.conn.setLocalDescription(desc)
-      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code }))
+      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
       .catch((e) => this.onError(e))
   }
 
@@ -160,6 +175,9 @@ export class RoomComponent implements OnInit {
     }
     console.log(msg);
     if (msg.sdp) {
+      if (!this.conn) {
+        this.getStream();
+      }
       this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
         console.log("offer");
@@ -171,10 +189,15 @@ export class RoomComponent implements OnInit {
         }
       }).catch((e) => this.onError(e));
     } else if (msg.candidate) {
+      if (!this.conn) {
+        this.getStream();
+      }
       this.conn.addIceCandidate(
         new RTCIceCandidate(msg.candidate))
         .then(() => {})
         .catch((e) => this.onError(e))
+    } else if (msg.command == "join-room" && this.owner) {
+      this.startStream(); // TODO
     }
   }
 
