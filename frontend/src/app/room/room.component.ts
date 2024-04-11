@@ -20,7 +20,7 @@ export class RoomComponent implements OnInit {
   users: String[] = [];
   owner: boolean = false;
   ownerUsername: String = "Test";
-  conn!: RTCPeerConnection;
+  conn?: RTCPeerConnection;
   connections: Map<String, RTCPeerConnection> = new Map();
   subject!: WebSocketSubject<any>;
   firstPlay: boolean = true;
@@ -185,7 +185,7 @@ export class RoomComponent implements OnInit {
       let video = this.videoNode.nativeElement;
       if (!video.srcObject || video.srcObject.id !== stream.id) {
         console.log("Added stream");
-        console.log(this.conn.iceConnectionState);
+        console.log(this.conn!.iceConnectionState);
         video.srcObject = stream;
         video.play();
       }
@@ -222,8 +222,8 @@ export class RoomComponent implements OnInit {
   }
 
   onCreateOfferSuccess(desc: any) {
-    this.conn.setLocalDescription(desc)
-      .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
+    this.conn!.setLocalDescription(desc)
+      .then(() => this.sendMessage({ 'sdp': this.conn!.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
       .catch((e) => this.onError(e))
   }
 
@@ -270,6 +270,10 @@ export class RoomComponent implements OnInit {
       }
     } else if (msg.command == "leave-room") {
       this.users = this.users.filter((u) => u != msg.user);
+      if (msg.user == "Test") { // TODO
+        this.conn!.close();
+        this.conn = undefined;
+      }
     } else if (msg.command == "enter-room" && msg.users) {
       this.users = msg.users;
     }
@@ -281,7 +285,7 @@ export class RoomComponent implements OnInit {
         console.log(connection[1].iceConnectionState);
       }
     } else {
-      console.log(this.conn.iceConnectionState);
+      console.log(this.conn!.iceConnectionState);
     }
   }
 
@@ -290,12 +294,12 @@ export class RoomComponent implements OnInit {
     if (!this.conn) {
       this.getStream();
     }
-    this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+    this.conn!.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
         console.log("offer");
-        if (this.conn.remoteDescription && this.conn.remoteDescription.type === 'offer') {
+        if (this.conn!.remoteDescription && this.conn!.remoteDescription.type === 'offer') {
           console.log("answering");
-          this.conn.createAnswer()
+          this.conn!.createAnswer()
             .then((a) => this.onCreateOfferSuccess(a))
             .catch((e) => this.onError(e));
         }
@@ -336,7 +340,7 @@ export class RoomComponent implements OnInit {
     if (!this.conn) {
       this.getStream();
     }
-    this.conn.addIceCandidate(
+    this.conn!.addIceCandidate(
       new RTCIceCandidate(msg.candidate))
       .then(() => { })
       .catch((e) => this.onError(e))
