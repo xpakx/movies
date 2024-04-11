@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, UTC
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
 from sqids import Sqids
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -49,6 +49,14 @@ class Login(Struct):
 
 clients: Dict[str, str] = {}  # websocket_id -> joined room code
 rooms: Dict[str, ActiveRoom] = {}  # code -> room
+test_room = ActiveRoom()
+test_room.id = 1
+test_room.name = "A room"
+test_room.title = "test movie"
+test_room.owner = "Test"
+test_room.clients = []
+code = sqids.encode([test_room.id])
+rooms[code] = test_room
 
 
 @app.get("/")
@@ -117,11 +125,32 @@ async def login_options() -> bytes:
     return json.encode({"status": "ok"})
 
 
+class WsMessage(Struct):
+    command: str
+    user: str
+    room: str
+    sdp: Optional[Any] = None
+    candidate: Optional[Any] = None
+
+
 @websocket.on("message")
-def message(ws: WebSocketConnector, msg: str) -> str:
-    logger.info("Msg from " + ws.id)
-    ws.sync_broadcast(msg)
-    '{"msg": "End of ws."}'
+def message(ws: WebSocketConnector, msg: str) -> None:
+    logger.info("Msg from " + ws.id + ": " + msg)
+    wsmsg: WsMessage = json.decode(msg, type=WsMessage)
+    if wsmsg.command == "join-room":
+        result = join(ws.id, wsmsg.room)
+        if result:
+            broadcast_room(ws, wsmsg.room, msg)
+            logger.info("User " + wsmsg.user + " joined room " + wsmsg.room)
+            ws.sync_send_to(ws.id, '{"msg": "Joined room"}')
+        else:
+            ws.sync_send_to(ws.id, '{"msg": "Room not created"}')
+    elif wsmsg.command == "sdp":
+        broadcast_room(ws, wsmsg.room, msg)
+    elif wsmsg.command == "candidate":
+        broadcast_room(ws, wsmsg.room, msg)
+    elif wsmsg.command == "chat":
+        broadcast_room(ws, wsmsg.room, msg)
 
 
 @websocket.on("close")
@@ -141,7 +170,7 @@ def connect(ws: WebSocketConnector):
     return '{"msg": "Connected to ws!"}'
 
 
-def join(ws_id: str, room_code: str):
+def join(ws_id: str, room_code: str) -> bool:
     if ws_id in clients:
         code = clients[ws_id]
         room = rooms[code]
@@ -150,8 +179,10 @@ def join(ws_id: str, room_code: str):
     if room_code in rooms:
         rooms[room_code].clients.append(ws_id)
         clients[ws_id] = room_code
+        return True
     else:
         clients.pop(ws_id, None)
+        return False
 
 
 def broadcast_room(ws: WebSocketConnector, code: str, msg: str):
