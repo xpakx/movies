@@ -1,5 +1,5 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket, WebSocketConnector, logger
-from robyn.robyn import Request
+from robyn.robyn import Request, Response
 from msgspec import json, Struct, ValidationError
 from db import create_user, get_user
 from models import Base, engine, Session
@@ -20,7 +20,8 @@ sqids = Sqids(min_length=6)
 
 @app.exception
 def handle_exception(error: ValidationError):
-    return {"status_code": 400, "body": f"error msg: {error}", "headers": {}}
+    msg = json.encode({"error": str(error)})
+    return Response(status_code=400, description=msg, headers={})
 
 
 class ActiveRoom:
@@ -77,7 +78,7 @@ async def newRoom(request: Request) -> bytes:
 
 
 @app.post("/register")
-async def register(request: Request) -> bytes:
+async def register(request: Request) -> Response:
     logger.info("Register")
     req: Register = json.decode(request.body, type=Register)
     if req.password != req.passwordRe:
@@ -91,7 +92,8 @@ async def register(request: Request) -> bytes:
     if result is None:
         raise Exception("User not added")
     token = create_token({"sub": result.username, "id": result.id})
-    return json.encode({"username": req.username, "token": token})
+    resp = json.encode({"username": req.username, "token": token})
+    return Response(status_code=201, description=resp, headers={})
 
 
 @app.options("/register")
