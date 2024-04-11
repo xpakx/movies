@@ -315,12 +315,6 @@ export class RoomComponent implements OnInit {
     connection.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
         console.log("offer");
-        if (connection.remoteDescription && connection.remoteDescription.type === 'offer') {
-          console.log("answering");
-          this.conn.createAnswer()
-            .then((a) => this.onCreateOfferSuccessOwner(a, msg.user))
-            .catch((e) => this.onError(e));
-        }
       }).catch((e) => this.onError(e));
   }
 
