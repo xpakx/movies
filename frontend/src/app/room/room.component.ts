@@ -215,6 +215,8 @@ export class RoomComponent implements OnInit {
       }
     } else if (msg.command == "leave-room") {
       this.users = this.users.filter((u) => u != msg.user);
+    } else if (msg.command == "enter-room" && msg.users) {
+      this.users = msg.users;
     }
   }
 

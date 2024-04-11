@@ -5,4 +5,5 @@ export interface Message {
     candidate?: any,
     command: String;
     to?: String;
+    users?: String[];
 }
