@@ -19,6 +19,7 @@ export class RoomComponent implements OnInit {
   user: String = ""
   owner: boolean = false;
   conn!: RTCPeerConnection;
+  connections: Map<String, RTCPeerConnection> = new Map();
   subject!: WebSocketSubject<any>;
 
   config?: RTCConfiguration = undefined;
@@ -49,7 +50,7 @@ export class RoomComponent implements OnInit {
     this.name = room.name;
     this.title = room.title;
     this.code = room.code;
-    this.owner = this.name == "Test"; // TODO
+    this.owner = this.user == "Test"; // TODO
     let apiUrl = environment.apiUrl.replace(/^http/, 'ws');
     this.subject = webSocket(`${apiUrl}/ws`);
 
@@ -86,36 +87,38 @@ export class RoomComponent implements OnInit {
   }
 
   // owner
-  startStream(): void {
+  startStream(user: String): void {
     let video = this.videoNode.nativeElement;
     if (video.captureStream) {
       let stream = video.captureStream();
       console.log('Captured stream from video with captureStream', stream);
-      this.tryStream(stream);
+      this.tryStream(stream, user);
     }
   }
 
-  tryStream(stream: MediaStream) {
+  tryStream(stream: MediaStream, user: String) {
     console.log('Starting stream');
     this.checkVideo(stream);
-    this.createRTCConnection();
-    stream.getTracks().forEach(track => this.conn.addTrack(track, stream));
-    this.conn.onnegotiationneeded = () => {
-      this.conn.createOffer()
-        .then((a) => this.onCreateOfferSuccess(a))
+    let newConnection = this.createRTCConnection();
+    stream.getTracks().forEach(track => newConnection.addTrack(track, stream));
+    newConnection.onnegotiationneeded = () => {
+      newConnection.createOffer()
+        .then((a) => this.onCreateOfferSuccessOwner(a, user))
         .catch((e) => this.onError(e));
     }
+    this.connections.set(user, newConnection);
   }
 
-  createRTCConnection() {
-    this.conn = new RTCPeerConnection(this.config);
-    this.conn.onicecandidate = (e) => this.onIceCandidate(e);
-    this.conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
+  createRTCConnection(): RTCPeerConnection {
+    let conn = new RTCPeerConnection(this.config);
+    conn.onicecandidate = (e) => this.onIceCandidate(e);
+    conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
+    return conn;
   }
 
   // not owner
   getStream() {
-    this.createRTCConnection();
+    this.conn = this.createRTCConnection();
     this.conn.ontrack = (e) => {
       const stream = e.streams[0];
       console.log('Remote stream', stream);
@@ -155,11 +158,21 @@ export class RoomComponent implements OnInit {
     this.debugState();
   }
 
+  // TODO
   onCreateOfferSuccess(desc: any) {
     this.conn.setLocalDescription(desc)
       .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
       .catch((e) => this.onError(e))
   }
+
+  // TODO
+  onCreateOfferSuccessOwner(desc: any, user: String) {
+    let connection = this.connections.get(user)!;
+    connection.setLocalDescription(desc)
+      .then(() => this.sendMessage({ 'sdp': connection.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
+      .catch((e) => this.onError(e))
+  }
+
 
   onError(e: any) {
 
@@ -175,33 +188,91 @@ export class RoomComponent implements OnInit {
     }
     console.log(msg);
     if (msg.sdp) {
-      if (!this.conn) {
-        this.getStream();
+      if (this.owner) {
+        this.onSdpMessageOwner(msg);
+      } else  {
+        this.onSdpMessageUser(msg);
       }
-      this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+    } else if (msg.candidate) {
+      console.log("candidate")
+      if (this.owner) {
+        console.log("for owner")
+        this.onCandidateMessageOwner(msg);
+      } else  {
+        console.log("for user")
+        this.onCandidateMessageUser(msg);
+      }
+    } else if (msg.command == "join-room" && this.owner) {
+      this.startStream(msg.user); // TODO
+    }
+  }
+
+  debugState() {
+    if (this.owner) {
+      for (let connection of this.connections) {
+        console.log(connection[1].iceConnectionState); // TODO
+      }
+    } else {
+      console.log(this.conn.iceConnectionState); // TODO
+    }
+  }
+
+  onSdpMessageUser(msg: Message) {
+    console.log("user have connection")
+    if (!this.conn) {
+      this.getStream();
+    console.log("stream")
+    }
+    console.log("desc")
+    this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
         console.log("offer");
         if (this.conn.remoteDescription && this.conn.remoteDescription.type === 'offer') {
           console.log("answering");
           this.conn.createAnswer()
-          .then((a) => this.onCreateOfferSuccess(a))
-          .catch((e) => this.onError(e));
+            .then((a) => this.onCreateOfferSuccess(a))
+            .catch((e) => this.onError(e));
         }
       }).catch((e) => this.onError(e));
-    } else if (msg.candidate) {
-      if (!this.conn) {
-        this.getStream();
-      }
-      this.conn.addIceCandidate(
-        new RTCIceCandidate(msg.candidate))
-        .then(() => {})
-        .catch((e) => this.onError(e))
-    } else if (msg.command == "join-room" && this.owner) {
-      this.startStream(); // TODO
-    }
+
   }
 
-  debugState() {
-    console.log(this.conn.iceConnectionState);
+  onSdpMessageOwner(msg: Message) {
+    let connection = this.connections.get(msg.user)!;
+    if (!connection) {
+      return; // ??
+    }
+    connection.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+      .then(() => {
+        console.log("offer");
+        if (connection.remoteDescription && connection.remoteDescription.type === 'offer') {
+          console.log("answering");
+          this.conn.createAnswer()
+            .then((a) => this.onCreateOfferSuccessOwner(a, msg.user))
+            .catch((e) => this.onError(e));
+        }
+      }).catch((e) => this.onError(e));
+  }
+
+  onCandidateMessageOwner(msg: Message) {
+    let connection = this.connections.get(msg.user)!;
+    if (!connection) {
+      return; // ??
+    }
+    connection.addIceCandidate(
+      new RTCIceCandidate(msg.candidate))
+      .then(() => { })
+      .catch((e) => this.onError(e))
+  }
+
+  onCandidateMessageUser(msg: Message) {
+    console.log("user have candidate")
+    if (!this.conn) {
+      this.getStream();
+    }
+    this.conn.addIceCandidate(
+      new RTCIceCandidate(msg.candidate))
+      .then(() => { })
+      .catch((e) => this.onError(e))
   }
 }
