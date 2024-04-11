@@ -21,7 +21,7 @@
 
 <div id="columns">
     <div id="mainContainer"> <!-- TODO: extract -->
-        <video id="videoPlayer" controls #videoNode></video>
+        <video id="videoPlayer" controls #videoNode (playing)="onPlay()"></video>
         <h2 class="title">{{ title }}</h2>
     </div>
 

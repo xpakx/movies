@@ -23,6 +23,7 @@ export class RoomComponent implements OnInit {
   conn!: RTCPeerConnection;
   connections: Map<String, RTCPeerConnection> = new Map();
   subject!: WebSocketSubject<any>;
+  firstPlay: boolean = true;
 
   config?: RTCConfiguration = undefined;
 
@@ -65,7 +66,6 @@ export class RoomComponent implements OnInit {
     if (!this.owner) {
       this.getStream(); // TODO
     }
-
   }
 
   openMovieChoice(): void {
@@ -86,6 +86,18 @@ export class RoomComponent implements OnInit {
     }
 
     this.videoNode.nativeElement.src = URL.createObjectURL(file);
+    this.firstPlay = true;
+  }
+
+  onPlay() {
+    if (!this.owner) {
+      return;
+    }
+    if (!this.firstPlay) {
+      return;
+    }
+    this.firstPlay = false;
+    this.replaceStream();
   }
 
   // owner
@@ -109,6 +121,51 @@ export class RoomComponent implements OnInit {
         .catch((e) => this.onError(e));
     }
     this.connections.set(user, newConnection);
+  }
+
+  replaceStream(): void {
+    let video = this.videoNode.nativeElement;
+    if (video.captureStream) {
+      let stream = video.captureStream();
+      console.log('Captured stream from video with captureStream', stream);
+      this.tryUpdateStream(stream);
+    }
+  }
+
+  tryUpdateStream(stream: MediaStream) {
+    console.log('Starting stream');
+    this.checkVideo(stream);
+    for (let user of this.users) {
+      if (user !== this.user) {
+        this.tryUpdateSingleStream(stream, user);
+      }
+    }
+  }
+
+  tryUpdateSingleStream(stream: MediaStream, user: String) {
+    let connection = this.connections.get(user);
+    if (connection) {
+      console.log("Connection with", user, "present");
+      let senders = connection.getSenders();
+      let tracks = stream.getTracks();
+      for (let i = 0; i < senders.length; i++) {
+        if (senders[i].track?.kind == "video") {
+          senders[i].replaceTrack(stream.getVideoTracks()[0]);
+        } else {
+          senders[i].replaceTrack(stream.getAudioTracks()[0]);
+        }
+      }
+    } else {
+      console.log("No connection yet with", user);
+      let newConnection = this.createRTCConnection(user);
+      stream.getTracks().forEach(track => newConnection.addTrack(track, stream));
+      newConnection.onnegotiationneeded = () => {
+        newConnection.createOffer()
+          .then((a) => this.onCreateOfferSuccessOwner(a, user))
+          .catch((e) => this.onError(e));
+      }
+      this.connections.set(user, newConnection);
+    }
   }
 
   createRTCConnection(user: String | undefined = undefined): RTCPeerConnection {
@@ -164,14 +221,12 @@ export class RoomComponent implements OnInit {
     this.debugState();
   }
 
-  // TODO
   onCreateOfferSuccess(desc: any) {
     this.conn.setLocalDescription(desc)
       .then(() => this.sendMessage({ 'sdp': this.conn.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
       .catch((e) => this.onError(e))
   }
 
-  // TODO
   onCreateOfferSuccessOwner(desc: any, user: String) {
     let connection = this.connections.get(user)!;
     connection.setLocalDescription(desc)
@@ -223,10 +278,10 @@ export class RoomComponent implements OnInit {
   debugState() {
     if (this.owner) {
       for (let connection of this.connections) {
-        console.log(connection[1].iceConnectionState); // TODO
+        console.log(connection[1].iceConnectionState);
       }
     } else {
-      console.log(this.conn.iceConnectionState); // TODO
+      console.log(this.conn.iceConnectionState);
     }
   }
 
@@ -234,9 +289,7 @@ export class RoomComponent implements OnInit {
     console.log("user have connection")
     if (!this.conn) {
       this.getStream();
-    console.log("stream")
     }
-    console.log("desc")
     this.conn.setRemoteDescription(new RTCSessionDescription(msg.sdp))
       .then(() => {
         console.log("offer");
