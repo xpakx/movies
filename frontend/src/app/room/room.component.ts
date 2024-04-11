@@ -14,10 +14,12 @@ import { Router } from '@angular/router';
 })
 export class RoomComponent implements OnInit {
   name: String = "Room";
-  code: String = "code"
-  title: String = "Movie"
-  user: String = ""
+  code: String = "code";
+  title: String = "Movie";
+  user: String = "";
+  users: String[] = [];
   owner: boolean = false;
+  ownerUsername: String = "Test";
   conn!: RTCPeerConnection;
   connections: Map<String, RTCPeerConnection> = new Map();
   subject!: WebSocketSubject<any>;
@@ -206,8 +208,13 @@ export class RoomComponent implements OnInit {
         console.log("for user")
         this.onCandidateMessageUser(msg);
       }
-    } else if (msg.command == "join-room" && this.owner) {
-      this.startStream(msg.user); // TODO
+    } else if (msg.command == "join-room") {
+      this.users.push(msg.user);
+      if (this.owner) {
+        this.startStream(msg.user); // TODO
+      }
+    } else if (msg.command == "leave-room") {
+      this.users = this.users.filter((u) => u != msg.user);
     }
   }
 

@@ -23,19 +23,21 @@
     <div id="mainContainer"> <!-- TODO: extract -->
         <video id="videoPlayer" controls #videoNode></video>
         <h2 class="title">{{ title }}</h2>
-        <button class="test" (click)="getStream()">get</button>
-        <button class="test" (click)="debugState()">state</button>
     </div>
 
     <div id="chatContainer"> <!-- TODO: extract -->
         <div id="usersList">
-            <h3>Users in the room:</h3>
+            <h3>Viewers</h3>
             <ul>
-                <li>User 1</li>
+                <li *ngFor="let user of users" [class.owner]="user == ownerUsername">{{user}}</li>
             </ul>
         </div>
         <div id="chat">
             <h3>Chat</h3>
+            <div class="message">
+                <span class="username">User1</span>
+                <span class="text">Test message</span>
+            </div>
         </div>
     </div>
 </div>
