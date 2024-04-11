@@ -168,11 +168,12 @@ def message(ws: WebSocketConnector, msg: str) -> None:
 def close(ws: WebSocketConnector):
     logger.info("User " + ws.id + " disconnected")
     code: Optional[str] = clients.pop(ws.id, None)
+    username = id_to_user.pop(ws.id, None)
     if code:
         room = rooms[code]
         if room:
             room.clients.remove(ws.id)
-    username = id_to_user.pop(ws.id, None)
+            broadcast_room(ws, code, '{"command": "leave-room", "user": "'+username+'", "room": "'+code+'"}')
     if username:
         user_to_id.pop(username, None)
     return '{"msg": "End of ws."}'
