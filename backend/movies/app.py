@@ -145,7 +145,14 @@ def message(ws: WebSocketConnector, msg: str) -> None:
         if result:
             broadcast_room(ws, wsmsg.room, msg)
             logger.info("User " + wsmsg.user + " joined room " + wsmsg.room)
-            ws.sync_send_to(ws.id, '{"msg": "Joined room"}')
+            users = [id_to_user[wsid] for wsid in rooms[wsmsg.room].clients if wsid in id_to_user]
+            resp = json.encode({
+                "command": "enter-room",
+                "user": "room",
+                "room": wsmsg.room,
+                "users": users,
+                })
+            ws.sync_send_to(ws.id, str(resp, encoding="utf-8"))
         else:
             ws.sync_send_to(ws.id, '{"msg": "Room not created"}')
     elif wsmsg.command == "sdp" or wsmsg.command == "candidate":
@@ -173,7 +180,11 @@ def close(ws: WebSocketConnector):
         room = rooms[code]
         if room:
             room.clients.remove(ws.id)
-            broadcast_room(ws, code, '{"command": "leave-room", "user": "'+username+'", "room": "'+code+'"}')
+            msg = json.encode({
+                "command": "leave-room",
+                "user": username,
+                "room": code})
+            broadcast_room(ws, code, str(msg, encoding="utf-8"))
     if username:
         user_to_id.pop(username, None)
     return '{"msg": "End of ws."}'
