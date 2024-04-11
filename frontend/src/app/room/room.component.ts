@@ -99,7 +99,7 @@ export class RoomComponent implements OnInit {
   tryStream(stream: MediaStream, user: String) {
     console.log('Starting stream');
     this.checkVideo(stream);
-    let newConnection = this.createRTCConnection();
+    let newConnection = this.createRTCConnection(user);
     stream.getTracks().forEach(track => newConnection.addTrack(track, stream));
     newConnection.onnegotiationneeded = () => {
       newConnection.createOffer()
@@ -109,9 +109,9 @@ export class RoomComponent implements OnInit {
     this.connections.set(user, newConnection);
   }
 
-  createRTCConnection(): RTCPeerConnection {
+  createRTCConnection(user: String | undefined = undefined): RTCPeerConnection {
     let conn = new RTCPeerConnection(this.config);
-    conn.onicecandidate = (e) => this.onIceCandidate(e);
+    conn.onicecandidate = (e) => this.onIceCandidate(e, user);
     conn.oniceconnectionstatechange = (e) => this.onIceStateChange(e);
     return conn;
   }
@@ -148,9 +148,13 @@ export class RoomComponent implements OnInit {
     }
   }
 
-  onIceCandidate(event: any) {
+  onIceCandidate(event: any, user: String | undefined ) {
     if (event.candidate) {
-      this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code, 'command': 'candidate' });
+      if (user) {
+        this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code, 'command': 'candidate' });
+      } else {
+        this.sendMessage({ 'candidate': event.candidate, 'user': this.user, 'room': this.code, 'command': 'candidate', 'to': user });
+      }
     }
   }
 
@@ -169,7 +173,7 @@ export class RoomComponent implements OnInit {
   onCreateOfferSuccessOwner(desc: any, user: String) {
     let connection = this.connections.get(user)!;
     connection.setLocalDescription(desc)
-      .then(() => this.sendMessage({ 'sdp': connection.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp' }))
+      .then(() => this.sendMessage({ 'sdp': connection.localDescription, 'user': this.user, 'room': this.code, 'command': 'sdp', 'to': user }))
       .catch((e) => this.onError(e))
   }
 

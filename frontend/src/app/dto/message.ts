@@ -4,4 +4,5 @@ export interface Message {
     sdp?: any,
     candidate?: any,
     command: String;
+    to?: String;
 }
