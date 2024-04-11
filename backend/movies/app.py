@@ -1,13 +1,13 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket, WebSocketConnector, logger
 from robyn.robyn import Request, Response
-from msgspec import json, Struct, ValidationError
+from msgspec import json, Struct, ValidationError, Meta
 from db import create_user, get_user
 from models import Base, engine, Session
 from datetime import datetime, timedelta, UTC
 from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
 from sqids import Sqids
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Annotated
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -38,14 +38,14 @@ class Room(Struct):
 
 
 class Register(Struct):
-    username: str
-    password: str
+    username: Annotated[str, Meta(min_length=5, max_length=15)]
+    password: Annotated[str, Meta(min_length=1)]
     passwordRe: str
 
 
 class Login(Struct):
-    username: str
-    password: str
+    username: Annotated[str, Meta(min_length=1)]
+    password: Annotated[str, Meta(min_length=1)]
 
 
 clients: Dict[str, str] = {}  # websocket_id -> joined room code
