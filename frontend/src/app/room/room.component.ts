@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { ApiService } from '../api.service';
 import { Room } from '../dto/room';
 import { WebSocketSubject, webSocket } from "rxjs/webSocket";
@@ -354,5 +354,17 @@ export class RoomComponent implements OnInit {
     } else {
       document.exitFullscreen();
     }
+  }
+
+  @HostListener('window:keydown.o', ['$event'])
+  openMovieOnKeyDown(event: KeyboardEvent) {
+    event.preventDefault();
+    this.openMovieChoice();
+  }
+
+  @HostListener('window:keydown.f', ['$event'])
+  fullscreenOnKeyDown(event: KeyboardEvent) {
+    event.preventDefault();
+    this.toggleFullScreen();
   }
 }
