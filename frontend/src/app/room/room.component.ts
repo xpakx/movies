@@ -339,4 +339,20 @@ export class RoomComponent implements OnInit {
       .then(() => { })
       .catch((e) => this.onError(e))
   }
+
+  isInFullScreen(): boolean {
+    if (document.fullscreenElement) {
+      return true;
+    }
+    return false;
+  }
+
+  toggleFullScreen() {
+    let full = this.isInFullScreen();
+    if (!full) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
 }

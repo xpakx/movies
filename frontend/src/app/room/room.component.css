@@ -45,7 +45,7 @@
 }
 
 #mainContainer {
-    width: calc(100% - 175px);
+    width: calc(100% - 325px);
 }
 
 #videoPlayer {
@@ -53,7 +53,7 @@
 }
 
 #chatContainer {
-    width: 150px;
+    width: 300px;
 }
 
 #chat, #usersList {
@@ -85,7 +85,7 @@
     border: none;
     outline: none;
     border-radius: 20px;
-    color: white;
+    color: #8087a2;
     font-variant: small-caps;
     background-color: #a6da95;
     padding: 5px 14px;
@@ -124,6 +124,17 @@
 .title {
     font-weight: 700;
     color: #6e738d;
+}
+
+@media only screen and (max-width: 900px) {
+  #mainContainer {
+    width: calc(100% - 175px);
+  }
+
+  #chatContainer {
+    width: 150px;
+  }
+
 }
 
 @media only screen and (max-width: 600px) {
@@ -181,4 +192,37 @@
 #chat .message .text {
   font-size: 12px;
   display: block;
+}
+
+@media all and (display-mode: fullscreen) {
+  #columns {
+    flex-direction: column;
+    margin: 0
+  }
+
+  #mainContainer {
+    width: 100%;
+  }
+
+  #chatContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 20px;
+  }
+
+  #chatContainer, #mainContainer .title, #mainContainer button {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  
+  #videoPlayer {
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+  }
+
+  #roomInfo {
+    display: none;
+  }
 }

@@ -4,7 +4,7 @@
 <div id="roomInfo">
     <h2>Room {{name}}</h2>
 
-    <div class="buttons">
+    <div class="buttons" *ngIf="owner">
         <button id="openFileButton" (click)="openMovieChoice()">O</button>
         <button id="openSubsButton">S</button>
     </div>
@@ -23,6 +23,10 @@
     <div id="mainContainer"> <!-- TODO: extract -->
         <video id="videoPlayer" controls #videoNode (playing)="onPlay()"></video>
         <h2 class="title">{{ title }}</h2>
+
+        <button class="code-button" (click)="toggleFullScreen()">
+            fullscreen
+        </button>
     </div>
 
     <div id="chatContainer"> <!-- TODO: extract -->
