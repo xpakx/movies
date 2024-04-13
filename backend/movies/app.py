@@ -73,6 +73,15 @@ async def testRoom(request) -> bytes:
     return json.encode({"name": "Test", "title": "Movie", "code": code})
 
 
+@app.get("/room/:code")
+async def getRoom(request: Request) -> bytes:
+    code = request.path_params.get("code")
+    room = rooms[code]
+    if not room:
+        raise Exception("Room not found")
+    return json.encode({"name": room.name, "title": room.title, "code": code})
+
+
 @app.post("/room")
 async def newRoom(request: Request) -> bytes:
     request: Room = json.decode(request.body, type=Room)
