@@ -374,4 +374,16 @@ export class RoomComponent implements OnInit {
       window.scroll({top: 0, left: 0});
     }
   }
+
+  copyLink() {
+    let link = `${window.location.origin}/room/${this.code}`;
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(link)
+        .then(() => console.log("copied"));
+    } else {
+      console.log("not secure context")
+      // TODO?
+    }
+  }
 }
