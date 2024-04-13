@@ -99,13 +99,13 @@ async def getRoom(request: Request) -> bytes:
     return json.encode({"name": room.name, "title": room.title, "code": code})
 
 
-@app.post("/room")
+@app.post("/room", auth_required=True)
 async def newRoom(request: Request) -> bytes:
-    request: Room = json.decode(request.body, type=Room)
+    req: Room = json.decode(request.body, type=Room)
     room = ActiveRoom()
-    room.name = request.name
-    room.title = request.title
-    room.owner = "Test"  # TODO
+    room.name = req.name
+    room.title = req.title
+    room.owner = request.identity.claims["username"]
     room.clients = []
     with idLock:
         global maxId
