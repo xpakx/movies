@@ -8,6 +8,7 @@ from jose import jwt
 from bcrypt import hashpw, checkpw, gensalt
 from sqids import Sqids
 from typing import Dict, List, Optional, Any, Annotated
+from threading import Lock
 
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
@@ -61,6 +62,9 @@ test_room.clients = []
 code = sqids.encode([test_room.id])
 rooms[code] = test_room
 
+maxId = 1
+idLock = Lock()
+
 
 @app.get("/")
 async def testRoom(request) -> bytes:
@@ -71,9 +75,18 @@ async def testRoom(request) -> bytes:
 
 @app.post("/room")
 async def newRoom(request: Request) -> bytes:
-    room: Room = json.decode(request.body, type=Room)
-    id = 1  # TODO
-    code = sqids.encode([id])
+    request: Room = json.decode(request.body, type=Room)
+    room = ActiveRoom()
+    room.name = request.name
+    room.title = request.title
+    room.owner = "Test"  # TODO
+    room.clients = []
+    with idLock:
+        global maxId
+        maxId += 1
+        room.id = maxId
+    code = sqids.encode([room.id])
+    rooms[code] = room
     return json.encode({"name": room.name, "title": room.title, "code": code})
 
 
