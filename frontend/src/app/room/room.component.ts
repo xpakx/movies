@@ -367,4 +367,11 @@ export class RoomComponent implements OnInit {
     event.preventDefault();
     this.toggleFullScreen();
   }
+
+  @HostListener('document:fullscreenchange', ['$event']) 
+  onFullScreen() {
+    if (document.fullscreenElement) {
+      window.scroll({top: 0, left: 0});
+    }
+  }
 }
