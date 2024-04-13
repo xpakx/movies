@@ -90,6 +90,7 @@ export class RoomComponent implements OnInit {
   }
 
   onPlay() {
+    this.acquireWakeLock();
     if (!this.owner) {
       return;
     }
@@ -98,6 +99,10 @@ export class RoomComponent implements OnInit {
     }
     this.firstPlay = false;
     this.replaceStream();
+  }
+
+  onPause() {
+    this.releaseWakeLock();
   }
 
   // owner
@@ -385,5 +390,30 @@ export class RoomComponent implements OnInit {
       console.log("not secure context")
       // TODO?
     }
+  }
+
+  wakeLock?: any;
+
+  acquireWakeLock() {
+    const navigatorAny: any = navigator;
+    if (navigatorAny['wakeLock']) {
+      this.wakeLock = navigatorAny["wakeLock"]
+        .request("screen")
+        .then(() => console.log("wake lock acquire"))
+        .catch((err: any) => console.log(err))
+    } else {
+      console.log("not secure context")
+    }
+  }
+
+  releaseWakeLock() {
+    if (!this.wakeLock) {
+      return;
+    }
+
+    this.wakeLock.release().then(() => {
+      this.wakeLock = null;
+      console.log("wake lock released");
+    });
   }
 }
