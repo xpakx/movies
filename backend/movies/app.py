@@ -1,5 +1,6 @@
 from robyn import Robyn, ALLOW_CORS, WebSocket, WebSocketConnector, logger
 from robyn.robyn import Request, Response
+from robyn.authentication import AuthenticationHandler, BearerGetter, Identity
 from msgspec import json, Struct, ValidationError, Meta
 from db import create_user, get_user
 from models import Base, engine, Session
@@ -10,11 +11,27 @@ from sqids import Sqids
 from typing import Dict, List, Optional, Any, Annotated
 from threading import Lock
 
+SECRET = "secret"
+
+
+class BasicAuthHandler(AuthenticationHandler):
+    def authenticate(self, request: Request):
+        token = self.token_getter.get_token(request)
+
+        try:
+            payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+            username = payload["sub"]
+        except Exception:
+            return
+
+        return Identity(claims={"username": username})
+
+
 app = Robyn(__file__)
 ALLOW_CORS(app, origins=["http://192.168.50.212:4200"])
 app.add_response_header("content-type", "application/json")
+app.configure_authentication(BasicAuthHandler(token_getter=BearerGetter()))
 websocket = WebSocket(app, "/ws")
-SECRET = "secret"
 Base.metadata.create_all(bind=engine)
 sqids = Sqids(min_length=6)
 
